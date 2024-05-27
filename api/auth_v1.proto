@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "github.com/serzap/auth_service/api";
+
+service AuthService {
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc VerifyEmail(VerifyEmailRequest) returns (VerifyEmailResponse);
+  rpc GetUserInfo(GetUserInfoRequest) returns (GetUserInfoResponse);
+}
+
+message RegisterRequest {
+  string email = 1;
+  string username = 2;
+  string first_name = 3;
+  string last_name = 4;
+}
+
+message RegisterResponse {
+    int64 user_id = 1;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string token = 1;
+}
+
+message VerifyEmailRequest {
+  string email = 1;
+  string verification_code = 2;
+}
+
+message VerifyEmailResponse {
+  bool success = 1;
+}
+
+message GetUserInfoRequest {
+  string token = 1;
+}
+
+message GetUserInfoResponse {
+  int64 user_id = 1;
+  string email = 2;
+  string username = 3;
+  string first_name = 4;
+  string last_name = 5;
+}
