@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"database/sql"
-	"errors"
 	"fmt"
 	"math/big"
 	"net/smtp"
@@ -16,11 +15,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/zeromicro/go-zero/core/logx"
-)
-
-var (
-	ErrInvalidEmail       = errors.New("invalid email")
-	ErrInvalidCredentials = errors.New("invalid credentials")
 )
 
 const (

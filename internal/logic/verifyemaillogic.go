@@ -3,18 +3,12 @@ package logic
 import (
 	"context"
 	"database/sql"
-	"errors"
 
 	"github.com/serzap/auth_service/api"
 	"github.com/serzap/auth_service/internal/svc"
 	"github.com/serzap/auth_service/model"
 
 	"github.com/zeromicro/go-zero/core/logx"
-)
-
-var (
-	ErrUserNotFound            = errors.New("user not found")
-	ErrInvalidVerificationCode = errors.New("invalid verification code")
 )
 
 type VerifyEmailLogic struct {

@@ -58,7 +58,7 @@ func (l *GetUserInfoLogic) GetUserInfo(in *api.GetUserInfoRequest) (*api.GetUser
 
 func (l *GetUserInfoLogic) parseToken(tokenString string) (jwt.MapClaims, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		return secretKey, nil
+		return nil, nil
 	})
 	if err != nil {
 		return nil, err
