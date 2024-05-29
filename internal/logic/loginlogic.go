@@ -41,7 +41,7 @@ func (l *LoginLogic) Login(in *api.LoginRequest) (*api.LoginResponse, error) {
 		}
 		return nil, err
 	}
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(in.Password))
+	err = bcrypt.CompareHashAndPassword([]byte(user.PassHash), []byte(in.Password))
 	if err != nil {
 		return nil, errors.New("invalid email or password")
 	}
