@@ -2,7 +2,7 @@ package logic
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	"github.com/serzap/auth_service/api"
 	"github.com/serzap/auth_service/internal/svc"
@@ -28,19 +28,24 @@ func NewGetUserInfoLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetUs
 
 func (l *GetUserInfoLogic) GetUserInfo(in *api.GetUserInfoRequest) (*api.GetUserInfoResponse, error) {
 	claims, err := l.parseToken(in.Token)
+	logx.Info(claims)
 	if err != nil {
-		return nil, errors.New("invalid access token")
+		logx.Error(err)
+		return nil, ErrInvalidToken
 	}
 
-	userID, ok := claims["userID"].(int64)
+	userIDFloat, ok := claims["userID"].(float64)
 	if !ok {
-		return nil, errors.New("invalid user ID")
+		logx.Error(err)
+		return nil, ErrInvalidUserID
 	}
+	userID := int64(userIDFloat)
 
 	user, err := l.svcCtx.UsersModel.FindOne(l.ctx, uint64(userID))
 	if err != nil {
+		logx.Error(err)
 		if err == model.ErrNotFound {
-			return nil, errors.New("user not found")
+			return nil, ErrUserNotFound
 		}
 		return nil, err
 	}
@@ -57,16 +62,22 @@ func (l *GetUserInfoLogic) GetUserInfo(in *api.GetUserInfoRequest) (*api.GetUser
 }
 
 func (l *GetUserInfoLogic) parseToken(tokenString string) (jwt.MapClaims, error) {
+	secretKey := []byte(l.svcCtx.Config.SecretKey)
+
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		return nil, nil
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return secretKey, nil
 	})
+
 	if err != nil {
 		return nil, err
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
-		return nil, errors.New("invalid token")
+		return nil, ErrInvalidToken
 	}
 
 	return claims, nil
