@@ -36,23 +36,23 @@ func (l *VerifyEmailLogic) VerifyEmail(in *api.VerifyEmailRequest) (*api.VerifyE
 	if err != nil {
 		if err == model.ErrNotFound {
 			logx.Errorf("User with email %s not found", in.Email)
-			return nil, ErrUserNotFound
+			return &api.VerifyEmailResponse{Success: false}, ErrUserNotFound
 		}
-		return nil, err
+		return &api.VerifyEmailResponse{Success: false}, err
 	}
 
 	if user.VerificationCode.String != in.VerificationCode || !user.VerificationCode.Valid {
 		logx.Errorf("Invalid verification code for user %s", in.Email)
-		return nil, ErrInvalidVerificationCode
+		return &api.VerifyEmailResponse{Success: false}, ErrInvalidVerificationCode
 	}
 
 	user.Verified = true
-	user.VerificationCode = sql.NullString{String: "", Valid: false} // Очистить verification code
+	user.VerificationCode = sql.NullString{String: "", Valid: false}
 	err = l.svcCtx.UsersModel.Update(l.ctx, user)
 	if err != nil {
-		return nil, err
+		return &api.VerifyEmailResponse{Success: false}, err
 	}
 
 	logx.Infof("User %s successfully verified", in.Email)
-	return &api.VerifyEmailResponse{}, nil
+	return &api.VerifyEmailResponse{Success: true}, nil
 }
