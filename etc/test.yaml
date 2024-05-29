@@ -1,0 +1,10 @@
+Name: authv1.rpc
+ListenOn: 127.0.0.1:50051
+DataSource: "user:password@tcp(127.0.0.1:3306)/auth_service"
+SqlFile: "../storage/users.sql"
+SmtpServer: "smtp.gmail.com"
+SmtpPort: "587"
+SmtpUser: "test@gmail.com"
+SmtpPass: "password"
+SecretKey: "1234"
+JWTExpiration: "72h"
