@@ -1,8 +1,3 @@
 Name: authv1.rpc
 ListenOn: 127.0.0.1:50051
-Etcd:
-  Hosts:
-  - 127.0.0.1:2379
-  Key: authv1.rpc
-
 DataSource: "username:password@tcp(127.0.0.1:3306)/dbname"
