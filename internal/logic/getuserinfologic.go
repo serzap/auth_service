@@ -2,10 +2,13 @@ package logic
 
 import (
 	"context"
+	"errors"
 
 	"github.com/serzap/auth_service/api"
 	"github.com/serzap/auth_service/internal/svc"
+	"github.com/serzap/auth_service/model"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -24,7 +27,47 @@ func NewGetUserInfoLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetUs
 }
 
 func (l *GetUserInfoLogic) GetUserInfo(in *api.GetUserInfoRequest) (*api.GetUserInfoResponse, error) {
-	// todo: add your logic here and delete this line
+	claims, err := l.parseToken(in.Token)
+	if err != nil {
+		return nil, errors.New("invalid access token")
+	}
 
-	return &api.GetUserInfoResponse{}, nil
+	userID, ok := claims["userID"].(int64)
+	if !ok {
+		return nil, errors.New("invalid user ID")
+	}
+
+	user, err := l.svcCtx.UsersModel.FindOne(l.ctx, uint64(userID))
+	if err != nil {
+		if err == model.ErrNotFound {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
+	}
+
+	response := &api.GetUserInfoResponse{
+		UserId:    userID,
+		Email:     user.Email,
+		Username:  user.Username,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+	}
+
+	return response, nil
+}
+
+func (l *GetUserInfoLogic) parseToken(tokenString string) (jwt.MapClaims, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return secretKey, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || !token.Valid {
+		return nil, errors.New("invalid token")
+	}
+
+	return claims, nil
 }
