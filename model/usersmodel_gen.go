@@ -36,12 +36,14 @@ type (
 	}
 
 	Users struct {
-		Id        uint64 `db:"id"`
-		Email     string `db:"email"`
-		Username  string `db:"username"`
-		FirstName string `db:"first_name"`
-		LastName  string `db:"last_name"`
-		Password  string `db:"password"`
+		Id               uint64         `db:"id"`
+		Email            string         `db:"email"`
+		Username         string         `db:"username"`
+		FirstName        string         `db:"first_name"`
+		LastName         string         `db:"last_name"`
+		PassHash         string         `db:"pass_hash"`
+		VerificationCode sql.NullString `db:"verification_code"`
+		Verified         bool           `db:"verified"`
 	}
 )
 
@@ -101,14 +103,14 @@ func (m *defaultUsersModel) FindOneByUsername(ctx context.Context, username stri
 }
 
 func (m *defaultUsersModel) Insert(ctx context.Context, data *Users) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?)", m.table, usersRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.Email, data.Username, data.FirstName, data.LastName, data.Password)
+	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?)", m.table, usersRowsExpectAutoSet)
+	ret, err := m.conn.ExecCtx(ctx, query, data.Email, data.Username, data.FirstName, data.LastName, data.PassHash, data.VerificationCode, data.Verified)
 	return ret, err
 }
 
 func (m *defaultUsersModel) Update(ctx context.Context, newData *Users) error {
 	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, usersRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, newData.Email, newData.Username, newData.FirstName, newData.LastName, newData.Password, newData.Id)
+	_, err := m.conn.ExecCtx(ctx, query, newData.Email, newData.Username, newData.FirstName, newData.LastName, newData.PassHash, newData.VerificationCode, newData.Verified, newData.Id)
 	return err
 }
 
