@@ -32,9 +32,11 @@ func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Register
 }
 
 func (l *RegisterLogic) Register(in *api.RegisterRequest) (*api.RegisterResponse, error) {
+	logx.Info("start registering")
 	if !isValidEmail(in.Email) {
 		return nil, errors.New("invalid email format")
 	}
+	logx.Info("succesfull email validation")
 
 	if exists, err := l.isUsernameOrEmailExists(in.Username, in.Email); err != nil {
 		return nil, err
