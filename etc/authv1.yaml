@@ -1,3 +1,4 @@
 Name: authv1.rpc
 ListenOn: 127.0.0.1:50051
-DataSource: "username:password@tcp(127.0.0.1:3306)/dbname"
+DataSource: "user:password@tcp(127.0.0.1:3306)/auth_service"
+SqlFile: "users.sql"
