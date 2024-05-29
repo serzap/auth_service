@@ -3,9 +3,9 @@ package logic
 import (
 	"context"
 	"crypto/rand"
+	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"math/big"
 	"net/smtp"
 	"regexp"
@@ -13,8 +13,19 @@ import (
 	"github.com/serzap/auth_service/api"
 	"github.com/serzap/auth_service/internal/svc"
 	"github.com/serzap/auth_service/model"
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/zeromicro/go-zero/core/logx"
+)
+
+var (
+	ErrInvalidEmail       = errors.New("invalid email")
+	ErrInvalidCredentials = errors.New("invalid credentials")
+)
+
+const (
+	codeLength    = 6
+	digitsForCode = "0123456789"
 )
 
 type RegisterLogic struct {
@@ -34,21 +45,42 @@ func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Register
 func (l *RegisterLogic) Register(in *api.RegisterRequest) (*api.RegisterResponse, error) {
 	logx.Info("start registering")
 	if !isValidEmail(in.Email) {
-		return nil, errors.New("invalid email format")
+		logx.Errorf("failed email validation")
+		return nil, ErrInvalidEmail
 	}
 	logx.Info("succesfull email validation")
 
-	if exists, err := l.isUsernameOrEmailExists(in.Username, in.Email); err != nil {
+	exists, err := l.isUsernameOrEmailExists(in.Username, in.Email)
+	if err != nil {
+		logx.Errorf("failed email validation")
 		return nil, err
 	} else if exists {
-		return nil, errors.New("username or email already exists")
+		logx.Errorf("failed email validation")
+		return nil, ErrInvalidEmail
 	}
+	logx.Info("succesfull credentials validation")
+
+	passHash, err := hashPassword(in.Password)
+	if err != nil {
+		logx.Errorf("failed password hashing")
+		return nil, err
+	}
+	logx.Info("succesfull password hashing")
+	verificationCode, err := generateVerificationCode()
+	if err != nil {
+		logx.Errorf("failed to generate verification code")
+		return nil, err
+	}
+	logx.Infof("Code for email %s generated", in.Email)
 
 	user := &model.Users{
-		Email:     in.Email,
-		Username:  in.Username,
-		FirstName: in.FirstName,
-		LastName:  in.LastName,
+		Email:            in.Email,
+		Username:         in.Username,
+		FirstName:        in.FirstName,
+		LastName:         in.LastName,
+		PassHash:         passHash,
+		VerificationCode: sql.NullString{String: verificationCode, Valid: true},
+		Verified:         false,
 	}
 	result, err := l.svcCtx.UsersModel.Insert(l.ctx, user)
 	if err != nil {
@@ -58,17 +90,16 @@ func (l *RegisterLogic) Register(in *api.RegisterRequest) (*api.RegisterResponse
 	if err != nil {
 		return nil, err
 	}
-	go l.sendVerificationEmail(user.Email)
+
+	go l.sendVerificationEmail(user.Email, user.VerificationCode.String)
 	return &api.RegisterResponse{UserId: userID}, nil
 }
 
 func isValidEmail(email string) bool {
-	// Define a regular expression for validating an email address.
 	var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 	return emailRegex.MatchString(email)
 }
 
-// Функция для проверки существования username или email
 func (l *RegisterLogic) isUsernameOrEmailExists(username, email string) (bool, error) {
 	user, err := l.svcCtx.UsersModel.FindOneByEmail(l.ctx, email)
 	if err != nil && err != model.ErrNotFound {
@@ -89,49 +120,38 @@ func (l *RegisterLogic) isUsernameOrEmailExists(username, email string) (bool, e
 	return false, nil
 }
 
-const (
-	smtpServer = "smtp.example.com"         // Замените на адрес вашего SMTP-сервера
-	smtpPort   = "587"                      // Порт вашего SMTP-сервера
-	smtpUser   = "auth_service@example.com" // Ваш SMTP логин
-	smtpPass   = "1111"                     // Ваш SMTP пароль
-)
-
-func (l *RegisterLogic) sendVerificationEmail(email string) {
-	verificationCode := generateVerificationCode()
-	if verificationCode == "" {
-		logx.Errorf("Failed to generate verification code for email: %s", email)
-		return
+func generateVerificationCode() (string, error) {
+	code := make([]byte, codeLength)
+	for i := range code {
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(digitsForCode))))
+		if err != nil {
+			logx.Error(err)
+			return "", err
+		}
+		code[i] = digitsForCode[num.Int64()]
 	}
-	// Set up authentication information.
-	auth := smtp.PlainAuth("", smtpUser, smtpPass, smtpServer)
+	return string(code), nil
+}
 
-	// Message body.
+func (l *RegisterLogic) sendVerificationEmail(email string, verificationCode string) {
+	auth := smtp.PlainAuth("", l.svcCtx.Config.SmtpUser, l.svcCtx.Config.SmtpPass, l.svcCtx.Config.SmtpServer)
+
 	subject := "Subject: Email Verification Code\n"
 	body := fmt.Sprintf("Your verification code is: %s", verificationCode)
 	msg := []byte(subject + "\n" + body)
 
-	// Sending email.
-	err := smtp.SendMail(smtpServer+":"+smtpPort, auth, smtpUser, []string{email}, msg)
+	err := smtp.SendMail(l.svcCtx.Config.SmtpServer+":"+l.svcCtx.Config.SmtpPort, auth, l.svcCtx.Config.SmtpUser, []string{email}, msg)
 	if err != nil {
-		log.Printf("Failed to send verification email to %s: %v", email, err)
+		logx.Error(err)
 		return
 	}
-	log.Printf("Verification email sent to %s", email)
 	logx.Infof("Sending verification email to %s with code %s", email, verificationCode)
 }
 
-const verificationCodeLength = 6
-const digits = "0123456789"
-
-func generateVerificationCode() string {
-	code := make([]byte, verificationCodeLength)
-	for i := range code {
-		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(digits))))
-		if err != nil {
-			logx.Errorf("Error generating verification code: %v", err)
-			return ""
-		}
-		code[i] = digits[num.Int64()]
+func hashPassword(password string) (string, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
 	}
-	return string(code)
+	return string(hashedPassword), nil
 }
