@@ -10,9 +10,7 @@ The Auth Service API provides a set of methods to manage user authentication, in
 
 Registers a new user.
 
-#### Request
-
-**RegisterRequest**
+#### RegisterRequest
 
 - `email` (string): The user's email address.
 - `password` (string): The user's password.
@@ -20,9 +18,7 @@ Registers a new user.
 - `first_name` (string): The user's first name.
 - `last_name` (string): The user's last name.
 
-#### Response
-
-**RegisterResponse**
+#### RegisterResponse
 
 - `user_id` (int64): The unique ID of the registered user.
 
@@ -30,16 +26,12 @@ Registers a new user.
 
 Logs in a user and returns an authentication token.
 
-#### Request
-
-**LoginRequest**
+#### LoginRequest
 
 - `email` (string): The user's email address.
 - `password` (string): The user's password.
 
-#### Response
-
-**LoginResponse**
+#### LoginResponse
 
 - `token` (string): The authentication token.
 
@@ -47,16 +39,12 @@ Logs in a user and returns an authentication token.
 
 Verifies a user's email address.
 
-#### Request
-
-**VerifyEmailRequest**
+#### VerifyEmailRequest
 
 - `email` (string): The user's email address.
 - `verification_code` (string): The verification code sent to the user's email.
 
-#### Response
-
-**VerifyEmailResponse**
+#### VerifyEmailResponse
 
 - `success` (bool): Whether the email verification was successful.
 
@@ -64,15 +52,11 @@ Verifies a user's email address.
 
 Retrieves user information based on the authentication token.
 
-#### Request
-
-**GetUserInfoRequest**
+#### GetUserInfoRequest
 
 - `token` (string): The authentication token.
 
-#### Response
-
-**GetUserInfoResponse**
+#### GetUserInfoResponse
 
 - `user_id` (int64): The unique ID of the user.
 - `email` (string): The user's email address.
@@ -84,10 +68,10 @@ Retrieves user information based on the authentication token.
 
 To run the project, follow these steps:
 
-1. **Configure the settings**: configure authv1.yaml file containing parameters such as database connection details, RPC server addresses, and other settings.
+1. **Configure the settings**: configure etc/authv1.yaml file containing parameters such as: DataSource - database connection , ListenOn -  RPC server address, and other settings.
 
 2. **Set up the database**: Either run the database manually or use Docker. If running manually, ensure that your database server is running and accessible. If using Docker, run the following command: `docker run --name mysql -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=auth_service -e MYSQL_USER=user -e MYSQL_PASSWORD=password -p 3306:3306 -d mysql:latest`
 
-3. **Start the server**: Launch the gRPC server for your service using the compiled binary or the run command.
+3. **Start the server**: Launch the gRPC server for your service using the compiled binary or the run command go build.
 
 4. **Testing the API**: You can test the API using tools like Postman or by running automated tests located in the `test` directory.
